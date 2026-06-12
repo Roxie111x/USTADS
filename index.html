@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>USTAD</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #111;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 450px;
+            max-height: 850px;
+            aspect-ratio: 9 / 16;
+            background: #4ec0ca;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.4);
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 30px;
+            letter-spacing: 4px;
+            color: #f7d138;
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        .btn {
+            background: #e86100;
+            color: white;
+            border: 3px solid #fff;
+            border-radius: 8px;
+            padding: 12px 28px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #a34300;
+            margin: 10px 0;
+            width: 80%;
+            max-width: 260px;
+            transition: transform 0.1s;
+        }
+
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0 #a34300;
+        }
+
+        .char-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            width: 90%;
+            margin-bottom: 25px;
+        }
+
+        .char-card {
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid transparent;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .char-card.selected {
+            border-color: #f7d138;
+            background: rgba(247, 209, 56, 0.3);
+        }
+
+        .char-thumb {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            margin-bottom: 8px;
+        }
+
+        .char-img-fallback {
+            width: 60px;
+            height: 60px;
+            background: #555;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            color: #ddd;
+        }
+
+        #live-score {
+            position: absolute;
+            top: 5%;
+            width: 100%;
+            text-align: center;
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 3px 3px 0 #000;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .score-board {
+            background: rgba(0, 0, 0, 0.6);
+            border: 3px solid #f7d138;
+            border-radius: 12px;
+            padding: 20px;
+            width: 80%;
+            max-width: 260px;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .score-board p {
+            margin: 10px 0;
+        }
+
+        #error-overlay {
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 100;
+        }
+
+        .error-box {
+            background: #333;
+            border: 3px solid #ff4444;
+            padding: 20px;
+            border-radius: 10px;
+            width: 85%;
+        }
+
+        .error-box h3 {
+            color: #ff4444;
+            margin-bottom: 10px;
+        }
+
+        .error-box p {
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+            color: #ddd;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="main-menu" class="screen">
+            <h1>USTAD</h1>
+            <button id="btn-to-char" class="btn">SELECT CHARACTER</button>
+        </div>
+
+        <div id="char-selection" class="screen hidden">
+            <h2>SELECT YOUR USTAD</h2>
+            <div class="char-grid">
+                <div class="char-card" data-char="1">
+                    <div class="char-img-fallback" id="fallback-1">K1</div>
+                    <img id="img-char-1" src="Karakter1.png" alt="Karakter 1" class="char-thumb hidden">
+                    <span>Character 1</span>
+                </div>
+                <div class="char-card" data-char="2">
+                    <div class="char-img-fallback" id="fallback-2">K2</div>
+                    <img id="img-char-2" src="Karakter2.png" alt="Karakter 2" class="char-thumb hidden">
+                    <span>Character 2</span>
+                </div>
+                <div class="char-card" data-char="3">
+                    <div class="char-img-fallback" id="fallback-3">K3</div>
+                    <img id="img-char-3" src="Karakter3.png" alt="Karakter 3" class="char-thumb hidden">
+                    <span>Character 3</span>
+                </div>
+                <div class="char-card" data-char="4">
+                    <div class="char-img-fallback" id="fallback-4">K4</div>
+                    <img id="img-char-4" src="Karakter4.png" alt="Karakter 4" class="char-thumb hidden">
+                    <span>Character 4</span>
+                </div>
+            </div>
+            <button id="btn-start" class="btn hidden">START GAME</button>
+        </div>
+
+        <canvas id="gameCanvas" width="360" height="640"></canvas>
+
+        <div id="live-score" class="hidden">0</div>
+
+        <div id="game-over" class="screen hidden">
+            <h2>GAME OVER</h2>
+            <div class="score-board">
+                <p>SCORE: <span id="final-score">0</span></p>
+                <p>BEST: <span id="best-score">0</span></p>
+            </div>
+            <button id="btn-restart" class="btn">PLAY AGAIN</button>
+            <button id="btn-menu" class="btn">MAIN MENU</button>
+        </div>
+
+        <div id="error-overlay" class="screen hidden">
+            <div class="error-box">
+                <h3>ASSET ERROR</h3>
+                <p id="error-msg">Missing required game assets in the folder.</p>
+                <button id="btn-ignore-error" class="btn">Try Anyway</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            let audioObjects = {}; // Web Audio API yerine normal Audio objeleri kullanıyoruz
+            let missingAssets = [];
+
+            const ASSET_FILES = {
+                images: {
+                    'char1': 'Karakter1.png',
+                    'char2': 'Karakter2.png',
+                    'char3': 'Karakter3.png',
+                    'char4': 'Karakter4.png'
+                },
+                audio: {
+                    'puan': 'puan.mp3',
+                    'ses1': 'ses1.mp3',
+                    'ses2': 'ses2.mp3',
+                    'ses3': 'ses3.mp3',
+                    'ses4': 'ses4.mp3',
+                    'ses5': 'ses5.mp3',
+                    'ses6': 'ses6.mp3',
+                    'ses7': 'ses7.mp3'
+                }
+            };
+
+            const loadedImages = {};
+
+            // --- DOM Elements ---
+            const mainCtx = document.getElementById('gameCanvas').getContext('2d');
+            const canvas = document.getElementById('gameCanvas');
+            const mainMenu = document.getElementById('main-menu');
+            const charSelection = document.getElementById('char-selection');
+            const gameOverScreen = document.getElementById('game-over');
+            const liveScoreUi = document.getElementById('live-score');
+            const errorOverlay = document.getElementById('error-overlay');
+            const errorMsg = document.getElementById('error-msg');
+
+            const btnToChar = document.getElementById('btn-to-char');
+            const btnStart = document.getElementById('btn-start');
+            const btnRestart = document.getElementById('btn-restart');
+            const btnMenu = document.getElementById('btn-menu');
+            const btnIgnoreError = document.getElementById('btn-ignore-error');
+
+            // --- State variables ---
+            let selectedCharId = localStorage.getItem('ustad_selected_char') || null;
+            let gameState = 'MENU'; // MENU, CHAR_SELECT, PLAYING, GAMEOVER
+            let score = 0;
+            let bestScore = parseInt(localStorage.getItem('ustad_best_score')) || 0;
+
+            // --- Game Settings & Physics Constants ---
+            const GRAVITY = 0.4;
+            const JUMP_FORCE = -6.5;
+            const PIPE_SPEED = 2.5;
+            const PIPE_SPAWN_RATE = 100;
+            const PIPE_GAP = 140;
+
+            // Entity Objects
+            let player = {
+                x: 60,
+                y: 250,
+                radius: 18,
+                velocity: 0,
+                width: 40,
+                height: 40
+            };
+
+            let pipes = [];
+            let frameCount = 0;
+            let animationFrameId = null;
+
+            // --- Asset Loading Verification ---
+            function initLoading() {
+                let loadPromises = [];
+
+                // Load Images
+                Object.keys(ASSET_FILES.images).forEach(key => {
+                    loadPromises.push(new Promise((resolve) => {
+                        const img = new Image();
+                        img.src = ASSET_FILES.images[key];
+                        img.onload = () => {
+                            loadedImages[key] = img;
+                            const idNum = key.replace('char', '');
+                            const thumbImg = document.getElementById(`img-char-${idNum}`);
+                            const fallbackDiv = document.getElementById(`fallback-${idNum}`);
+                            if (thumbImg && fallbackDiv) {
+                                thumbImg.src = img.src;
+                                thumbImg.classList.remove('hidden');
+                                fallbackDiv.classList.add('hidden');
+                            }
+                            resolve();
+                        };
+                        img.onerror = () => {
+                            missingAssets.push(ASSET_FILES.images[key]);
+                            resolve();
+                        };
+                    }));
+                });
+
+                // Load Audio via HTML5 Audio (CORS engelini tamamen aşar)
+                Object.keys(ASSET_FILES.audio).forEach(key => {
+                    loadPromises.push(new Promise((resolve) => {
+                        const audio = new Audio();
+                        audio.src = ASSET_FILES.audio[key];
+                        audio.preload = 'auto';
+                        
+                        audio.oncanplaythrough = () => {
+                            audioObjects[key] = audio;
+                            resolve();
+                        };
+                        
+                        audio.onerror = () => {
+                            missingAssets.push(ASSET_FILES.audio[key]);
+                            resolve();
+                        };
+                    }));
+                });
+
+                Promise.all(loadPromises).then(() => {
+                    if (missingAssets.length > 0) {
+                        showError();
+                    }
+                });
+            }
+
+            function showError() {
+                errorMsg.innerHTML = "The following files could not be loaded from the local folder:<br><br>" + 
+                                     missingAssets.map(f => `• ${f}`).join('<br>') + 
+                                     "<br><br>Please verify files exist next to index.html.";
+                errorOverlay.classList.remove('hidden');
+            }
+
+            // Tarayıcının sesleri ilk dokunuşta engellemesini kaldırmak için boş bir tetikleyici
+            function unlockAudio() {
+                Object.keys(audioObjects).forEach(key => {
+                    if (audioObjects[key]) {
+                        audioObjects[key].play().then(() => {
+                            audioObjects[key].pause();
+                            audioObjects[key].currentTime = 0;
+                        }).catch(() => {});
+                    }
+                });
+            }
+
+            function playSound(key) {
+                if (!audioObjects[key]) return;
+                try {
+                    // Üst üste hızlıca çalabilmesi için her seferinde sıfırlıyoruz
+                    audioObjects[key].currentTime = 0; 
+                    audioObjects[key].play().catch(e => console.log("Ses çalma engellendi:", e));
+                } catch (e) {
+                    console.error("Audio playback failed", e);
+                }
+            }
+
+            function playLoseSound() {
+                const randomIndex = Math.floor(Math.random() * 7) + 1;
+                playSound(`ses${randomIndex}`);
+            }
+
+            // --- Touch & Gesture Event Blockers ---
+            document.addEventListener('touchmove', function (e) {
+                if (e.scale !== 1) { e.preventDefault(); }
+            }, { passive: false });
+
+            document.addEventListener('gesturestart', function (e) {
+                e.preventDefault();
+            }, { passive: false });
+
+            // --- Core Navigation UI ---
+            btnToChar.addEventListener('click', (e) => {
+                e.stopPropagation();
+                unlockAudio();
+                mainMenu.classList.add('hidden');
+                charSelection.classList.remove('hidden');
+                gameState = 'CHAR_SELECT';
+                highlightSelectedChar();
+            });
+
+            // Handle Character Card Selection
+            document.querySelectorAll('.char-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    unlockAudio();
+                    selectedCharId = card.getAttribute('data-char');
+                    localStorage.setItem('ustad_selected_char', selectedCharId);
+                    highlightSelectedChar();
+                });
+            });
+
+            function highlightSelectedChar() {
+                document.querySelectorAll('.char-card').forEach(card => {
+                    if (card.getAttribute('data-char') === selectedCharId) {
+                        card.classList.add('selected');
+                    } else {
+                        card.classList.remove('selected');
+                    }
+                });
+                if (selectedCharId) {
+                    btnStart.classList.remove('hidden');
+                }
+            }
+
+            btnStart.addEventListener('click', (e) => {
+                e.stopPropagation();
+                unlockAudio();
+                charSelection.classList.add('hidden');
+                setupGame();
+            });
+
+            btnRestart.addEventListener('click', (e) => {
+                e.stopPropagation();
+                unlockAudio();
+                gameOverScreen.classList.add('hidden');
+                setupGame();
+            });
+
+            btnMenu.addEventListener('click', (e) => {
+                e.stopPropagation();
+                unlockAudio();
+                gameOverScreen.classList.add('hidden');
+                mainMenu.classList.remove('hidden');
+                liveScoreUi.classList.add('hidden');
+                gameState = 'MENU';
+            });
+
+            btnIgnoreError.addEventListener('click', (e) => {
+                e.stopPropagation();
+                errorOverlay.classList.add('hidden');
+            });
+
+            // --- Global Screen Canvas Interaction ---
+            window.addEventListener('touchstart', (e) => {
+                unlockAudio();
+                if (gameState === 'PLAYING') {
+                    e.preventDefault();
+                    player.velocity = JUMP_FORCE;
+                }
+            }, { passive: false });
+
+            window.addEventListener('mousedown', (e) => {
+                unlockAudio();
+                if (gameState === 'PLAYING') {
+                    player.velocity = JUMP_FORCE;
+                }
+            });
+
+            // --- Game Logic Engine ---
+            function setupGame() {
+                pipes = [];
+                frameCount = 0;
+                score = 0;
+                player.y = 250;
+                player.velocity = 0;
+                liveScoreUi.textContent = score;
+                liveScoreUi.classList.remove('hidden');
+                gameState = 'PLAYING';
+
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                animationFrameId = requestAnimationFrame(updateLoop);
+            }
+
+            function createPipe() {
+                const minHeight = 40;
+                const maxHeight = canvas.height - PIPE_GAP - 120;
+                const topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+                
+                pipes.push({
+                    x: canvas.width,
+                    topHeight: topHeight,
+                    bottomY: topHeight + PIPE_GAP,
+                    width: 55,
+                    passed: false
+                });
+            }
+
+            function updateLoop() {
+                if (gameState !== 'PLAYING') return;
+
+                player.velocity += GRAVITY;
+                player.y += player.velocity;
+
+                if (player.y + player.radius >= canvas.height - 40) {
+                    endGame();
+                    return;
+                }
+                if (player.y - player.radius <= 0) {
+                    player.y = player.radius;
+                    player.velocity = 0;
+                }
+
+                if (frameCount % PIPE_SPAWN_RATE === 0) {
+                    createPipe();
+                }
+
+                for (let i = pipes.length - 1; i >= 0; i--) {
+                    let p = pipes[i];
+                    p.x -= PIPE_SPEED;
+
+                    if (!p.passed && p.x + p.width / 2 < player.x) {
+                        p.passed = true;
+                        score++;
+                        liveScoreUi.textContent = score;
+                        playSound('puan');
+                    }
+
+                    if (
+                        player.x + player.radius > p.x && 
+                        player.x - player.radius < p.x + p.width
+                    ) {
+                        if (player.y - player.radius < p.topHeight || player.y + player.radius > p.bottomY) {
+                            endGame();
+                            return;
+                        }
+                    }
+
+                    if (p.x + p.width < 0) {
+                        pipes.splice(i, 1);
+                    }
+                }
+
+                frameCount++;
+                draw();
+                animationFrameId = requestAnimationFrame(updateLoop);
+            }
+
+            function endGame() {
+                gameState = 'GAMEOVER';
+                playLoseSound();
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    localStorage.setItem('ustad_best_score', bestScore);
+                }
+
+                document.getElementById('final-score').textContent = score;
+                document.getElementById('best-score').textContent = bestScore;
+
+                liveScoreUi.classList.add('hidden');
+                gameOverScreen.classList.remove('hidden');
+            }
+
+            function draw() {
+                mainCtx.fillStyle = '#4ec0ca';
+                mainCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+                pipes.forEach(p => {
+                    mainCtx.fillStyle = '#73bf2e';
+                    mainCtx.strokeStyle = '#538125';
+                    mainCtx.lineWidth = 3;
+
+                    mainCtx.fillRect(p.x, 0, p.width, p.topHeight);
+                    mainCtx.strokeRect(p.x, -5, p.width, p.topHeight + 5);
+
+                    mainCtx.fillRect(p.x, p.bottomY, p.width, canvas.height - p.bottomY);
+                    mainCtx.strokeRect(p.x, p.bottomY, p.width, canvas.height - p.bottomY + 5);
+
+                    mainCtx.fillStyle = '#9ce659';
+                    mainCtx.fillRect(p.x - 2, p.topHeight - 15, p.width + 4, 15);
+                    mainCtx.strokeRect(p.x - 2, p.topHeight - 15, p.width + 4, 15);
+
+                    mainCtx.fillRect(p.x - 2, p.bottomY, p.width + 4, 15);
+                    mainCtx.strokeRect(p.x - 2, p.bottomY, p.width + 4, 15);
+                });
+
+                mainCtx.fillStyle = '#d4a359';
+                mainCtx.fillRect(0, canvas.height - 40, canvas.width, 40);
+                mainCtx.fillStyle = '#5cdd7a';
+                mainCtx.fillRect(0, canvas.height - 40, canvas.width, 10);
+
+                const activeImgKey = `char${selectedCharId || 1}`;
+                if (loadedImages[activeImgKey]) {
+                    mainCtx.save();
+                    mainCtx.translate(player.x, player.y);
+                    
+                    let targetRotation = player.velocity * 0.05;
+                    if (targetRotation > 0.5) targetRotation = 0.5;
+                    if (targetRotation < -0.3) targetRotation = -0.3;
+                    mainCtx.rotate(targetRotation);
+
+                    mainCtx.drawImage(
+                        loadedImages[activeImgKey], 
+                        -player.width / 2, 
+                        -player.height / 2, 
+                        player.width, 
+                        player.height
+                    );
+                    mainCtx.restore();
+                } else {
+                    mainCtx.beginPath();
+                    mainCtx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+                    mainCtx.fillStyle = '#f7d138';
+                    mainCtx.fill();
+                    mainCtx.strokeStyle = '#000';
+                    mainCtx.lineWidth = 2;
+                    mainCtx.stroke();
+                    mainCtx.closePath();
+                }
+            }
+
+            initLoading();
+        })();
+    </script>
+</body>
+</html>
