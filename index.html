@@ -259,7 +259,7 @@
 
     <script>
         (function () {
-            let audioObjects = {}; // Web Audio API yerine normal Audio objeleri kullanıyoruz
+            let audioObjects = {};
             let missingAssets = [];
 
             const ASSET_FILES = {
@@ -301,16 +301,16 @@
 
             // --- State variables ---
             let selectedCharId = localStorage.getItem('ustad_selected_char') || null;
-            let gameState = 'MENU'; // MENU, CHAR_SELECT, PLAYING, GAMEOVER
+            let gameState = 'MENU';
             let score = 0;
             let bestScore = parseInt(localStorage.getItem('ustad_best_score')) || 0;
 
-            // --- Game Settings & Physics Constants ---
-            const GRAVITY = 0.4;
-            const JUMP_FORCE = -6.5;
-            const PIPE_SPEED = 2.5;
-            const PIPE_SPAWN_RATE = 100;
-            const PIPE_GAP = 140;
+            // --- MOBİL İÇİN YENİDEN AYARLANAN FİZİK DEĞERLERİ ---
+            const GRAVITY = 0.32;        // Yerçekimi azaltıldı (Eski değer: 0.4) - Daha yavaş düşer
+            const JUMP_FORCE = -5.4;     // Zıplama gücü azaltıldı (Eski değer: -6.5) - Yukarı çok sert fırlamaz
+            const PIPE_SPEED = 2.0;      // Boruların kayma hızı yavaşlatıldı (Eski değer: 2.5)
+            const PIPE_SPAWN_RATE = 110; // Boruların geliş sıklığı açıldı (Eski değer: 100 frekans)
+            const PIPE_GAP = 150;        // İki boru arası boşluk genişletildi (Eski değer: 140) - Geçiş kolaylaştı
 
             // Entity Objects
             let player = {
@@ -354,7 +354,7 @@
                     }));
                 });
 
-                // Load Audio via HTML5 Audio (CORS engelini tamamen aşar)
+                // Load Audio via HTML5 Audio
                 Object.keys(ASSET_FILES.audio).forEach(key => {
                     loadPromises.push(new Promise((resolve) => {
                         const audio = new Audio();
@@ -387,7 +387,6 @@
                 errorOverlay.classList.remove('hidden');
             }
 
-            // Tarayıcının sesleri ilk dokunuşta engellemesini kaldırmak için boş bir tetikleyici
             function unlockAudio() {
                 Object.keys(audioObjects).forEach(key => {
                     if (audioObjects[key]) {
@@ -402,9 +401,8 @@
             function playSound(key) {
                 if (!audioObjects[key]) return;
                 try {
-                    // Üst üste hızlıca çalabilmesi için her seferinde sıfırlıyoruz
                     audioObjects[key].currentTime = 0; 
-                    audioObjects[key].play().catch(e => console.log("Ses çalma engellendi:", e));
+                    audioObjects[key].play().catch(e => console.log("Ses engellendi:", e));
                 } catch (e) {
                     console.error("Audio playback failed", e);
                 }
